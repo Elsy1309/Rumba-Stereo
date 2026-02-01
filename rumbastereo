@@ -1,0 +1,46 @@
+# desde la raíz del repo local
+mkdir -p .github/workflows
+cat > .github/workflows/deploy-tiiny.yml <<'YAML'
+# pega aquí exactamente el contenido que compartiste
+name: Deploy to tiiny.host
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Zip output
+        run: |
+          cd ./dist
+          zip -r ../site.zip .
+
+      - name: Upload to tiiny.host
+        env:
+          TIINY_TOKEN: ${{ secrets.TIINY_TOKEN }}
+        run: |
+          curl -s -X POST "https://api.tiiny.host/upload" \
+            -H "Authorization: Bearer $TIINY_TOKEN" \
+            -F "file=@site.zip" \
+            -F "name=rumbastereo" \
+            -o response.json
+          cat response.json
+YAML
+
+git add .github/workflows/deploy-tiiny.yml
+git commit -m "Add Tiiny.host deploy workflow"
+git push origin main
